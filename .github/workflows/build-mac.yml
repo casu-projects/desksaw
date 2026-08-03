@@ -1,0 +1,35 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch: # 수동으로 빌드 버튼을 누를 수 있게 해줍니다.
+
+jobs:
+  export-mac:
+    runs-on: ubuntu-latest
+    name: Export macOS Game
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Godot macOS Export
+        uses: firebelley/godot-export@v6.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_mono_linux_x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_mono_export_templates.tpz
+          relative_project_path: ./
+          archive_output: true
+        env:
+          GODOT_VERSION: 4.2.2
+
+      - name: Upload macOS Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: desksaw-macOS
+          path: /home/runner/.local/share/godot/builds/macOS.zip
