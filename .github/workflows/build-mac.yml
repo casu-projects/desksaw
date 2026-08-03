@@ -8,34 +8,43 @@ on:
 jobs:
   export-mac:
     runs-on: ubuntu-latest
-    container:
-      # Rapier2D 요구 버전인 Godot 4.4 (.NET) Docker 공식 이미지 사용
-      image: barichello/godot-ci:4.4-mono
-
+    name: Export macOS Game
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Build Environment
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install Godot 4.4 & Export Templates
         run: |
-          mkdir -v -p ~/.local/share/godot/export_templates
-          mkdir -v -p build/mac
-          # Godot 4.4 mono 익스포트 템플릿 설치
+          mkdir -p ~/.local/share/godot/export_templates
+          mkdir -p build/mac
+
+          # Godot 4.4-mono 다운로드 및 설치
+          wget https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_mono_linux_x86_64.zip
+          unzip -q Godot_v4.4-stable_mono_linux_x86_64.zip
+          sudo mv Godot_v4.4-stable_mono_linux_x86_64/Godot_v4.4-stable_mono_linux.x86_64 /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+
+          # Export Templates 다운로드 및 설치
           wget https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_mono_export_templates.tpz
-          unzip Godot_v4.4-stable_mono_export_templates.tpz
+          unzip -q Godot_v4.4-stable_mono_export_templates.tpz
           mv templates ~/.local/share/godot/export_templates/4.4.stable.mono
 
-      # 1차: 에셋 가상 인덱싱 (UID 및 텍스처 임포트 처리)
+      # 1단계: 프로젝트 에셋 및 UID, 텍스처 가상 인덱싱
       - name: Import Assets
         run: |
           godot --headless --editor --quit || true
 
-      # 2차: 실제 macOS zip 빌드
+      # 2단계: macOS 네이티브 빌드 (.zip)
       - name: Export macOS Game
         run: |
           godot --headless --export-release "macOS" build/mac/desksaw.zip
 
-      # 빌드 결과물 저장
+      # 3단계: 완성본 업로드
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
