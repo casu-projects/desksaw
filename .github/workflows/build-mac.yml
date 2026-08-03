@@ -24,7 +24,7 @@ jobs:
           mkdir -p build/mac
           mkdir -p /home/runner/godot_engine
 
-          # Godot 4.6-dev3 mono 다운로드 (프로젝트 애드온 요구 사양)
+          # Godot 4.6-dev3 mono 다운로드
           wget https://github.com/godotengine/godot-builds/releases/download/4.6-dev3/Godot_v4.6-dev3_mono_linux_x86_64.zip
           unzip -q Godot_v4.6-dev3_mono_linux_x86_64.zip -d /home/runner/godot_engine
 
@@ -37,10 +37,10 @@ jobs:
           unzip -q Godot_v4.6-dev3_mono_export_templates.tpz
           mv templates ~/.local/share/godot/export_templates/4.6.dev3.mono
 
-      # 1단계: 가상 인덱싱 및 C# / GDScript 사전 컴파일
-      - name: Import Assets & Build C#
+      # 1단계: 텍스처 압축 및 전체 에셋 임포트 (UID 캐시 갱신)
+      - name: Import Assets
         run: |
-          godot --headless --editor --quit || true
+          godot --headless --import || true
 
       # 2단계: macOS 네이티브 빌드 (.zip)
       - name: Export macOS Game
