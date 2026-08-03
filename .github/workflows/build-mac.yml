@@ -8,7 +8,7 @@ on:
 jobs:
   export-mac:
     runs-on: ubuntu-latest
-    name: Create macos build
+    name: Export macOS Game
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -18,7 +18,19 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # 프로젝트 내 Rapier2D 요구 버전에 맞춰 Godot을 4.3-stable로 업그레이드
+      # ETC2/ASTC 텍스처 변환 및 UID 캐시 형성을 위한 Headless 가상 임포트
+      - name: Import Godot Assets
+        uses: firebelley/godot-export@v6.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+          relative_project_path: ./
+          generate_release_notes: false
+          use_preset_export_path: false
+          godot_args: '--editor --quit'
+        continue-on-error: true
+
+      # 실제 macOS 빌드 수행
       - name: Godot macOS Export
         uses: firebelley/godot-export@v6.0.0
         with:
