@@ -3,12 +3,12 @@ name: Build macOS App
 on:
   push:
     branches: [ master, main ]
-  workflow_dispatch: # 수동으로 빌드 버튼을 누를 수 있게 해줍니다.
+  workflow_dispatch:
 
 jobs:
   export-mac:
     runs-on: ubuntu-latest
-    name: Export macOS Game
+    name: Create macos build
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -18,6 +18,21 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # 리소스 UID 맵핑 및 캐시(.godot/) 생성을 위해 프로젝트 가상 임포트 실행
+      - name: Import Godot Assets
+        uses: firebelley/godot-export@v6.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_mono_linux_x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_mono_export_templates.tpz
+          relative_project_path: ./
+          generate_release_notes: false
+          use_preset_export_path: false
+          export_debug: true
+          # --editor --quit 옵션으로 리소스 인덱싱만 마치고 종료
+          godot_args: '--editor --quit'
+        continue-on-error: true
+
+      # 캐시가 생성된 후 실제 macOS 익스포트 진행
       - name: Godot macOS Export
         uses: firebelley/godot-export@v6.0.0
         with:
