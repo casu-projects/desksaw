@@ -8,41 +8,36 @@ on:
 jobs:
   export-mac:
     runs-on: ubuntu-latest
-    name: Export macOS Game
+    container:
+      # Rapier2D 요구 버전인 Godot 4.4 (.NET) Docker 공식 이미지 사용
+      image: barichello/godot-ci:4.4-mono
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+      - name: Setup Build Environment
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates
+          mkdir -v -p build/mac
+          # Godot 4.4 mono 익스포트 템플릿 설치
+          wget https://github.com/godotengine/godot/releases/download/4.4-stable/Godot_v4.4-stable_mono_export_templates.tpz
+          unzip Godot_v4.4-stable_mono_export_templates.tpz
+          mv templates ~/.local/share/godot/export_templates/4.4.stable.mono
 
-      # ETC2/ASTC 텍스처 변환 및 UID 캐시 형성을 위한 Headless 가상 임포트
-      - name: Import Godot Assets
-        uses: firebelley/godot-export@v6.0.0
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
-          relative_project_path: ./
-          generate_release_notes: false
-          use_preset_export_path: false
-          godot_args: '--editor --quit'
-        continue-on-error: true
+      # 1차: 에셋 가상 인덱싱 (UID 및 텍스처 임포트 처리)
+      - name: Import Assets
+        run: |
+          godot --headless --editor --quit || true
 
-      # 실제 macOS 빌드 수행
-      - name: Godot macOS Export
-        uses: firebelley/godot-export@v6.0.0
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
-          relative_project_path: ./
-          archive_output: true
-        env:
-          GODOT_VERSION: 4.3
+      # 2차: 실제 macOS zip 빌드
+      - name: Export macOS Game
+        run: |
+          godot --headless --export-release "macOS" build/mac/desksaw.zip
 
-      - name: Upload macOS Build
+      # 빌드 결과물 저장
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: desksaw-macOS
-          path: /home/runner/.local/share/godot/builds/macOS.zip
+          path: build/mac/desksaw.zip
