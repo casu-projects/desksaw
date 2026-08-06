@@ -18,49 +18,44 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Install Godot 4.6 & Export Templates
+      - name: Install Godot 4.7.1 & Export Templates
         run: |
           mkdir -p ~/.local/share/godot/export_templates
           mkdir -p build/mac
           mkdir -p /home/runner/godot_engine
 
-          # 1. Godot 4.6-dev3 Mono Engine 다운로드
-          wget https://github.com/godotengine/godot-builds/releases/download/4.6-dev3/Godot_v4.6-dev3_mono_linux_x86_64.zip
-          unzip -q Godot_v4.6-dev3_mono_linux_x86_64.zip -d /home/runner/godot_engine
+          # 1. Godot 4.7.1-stable Mono Engine 다운로드 (프로젝트/GodotSharp 버전과 일치)
+          wget https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_mono_linux_x86_64.zip
+          unzip -q Godot_v4.7.1-stable_mono_linux_x86_64.zip -d /home/runner/godot_engine
 
           # GodotSharp 디렉터리 보존을 위해 심볼릭 링크 연결
-          GODOT_BIN=$(find /home/runner/godot_engine -name "Godot_v4.6-dev3_mono_linux.x86_64")
+          GODOT_BIN=$(find /home/runner/godot_engine -name "Godot_v4.7.1-stable_mono_linux.x86_64")
           sudo ln -s "$GODOT_BIN" /usr/local/bin/godot
 
           # 2. Export Templates 다운로드 및 설치
-          wget https://github.com/godotengine/godot-builds/releases/download/4.6-dev3/Godot_v4.6-dev3_mono_export_templates.tpz
-          unzip -q Godot_v4.6-dev3_mono_export_templates.tpz
-          mv templates ~/.local/share/godot/export_templates/4.6.dev3.mono
+          wget https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_mono_export_templates.tpz
+          unzip -q Godot_v4.7.1-stable_mono_export_templates.tpz
+          mv templates ~/.local/share/godot/export_templates/4.7.1.stable.mono
 
-      # C# 컴파일 및 UID 캐시, 텍스처 임포트 수행
+      # C# 어셈블리 빌드 (autoload/임포트 에러 방지)
+      - name: Build C# Project
+        run: |
+          dotnet build StartingOver.csproj -c Debug
+
+      # 텍스처 임포트 및 UID 캐시 생성
       - name: Import Assets
         run: |
           godot --headless --import || true
 
-      # macOS .app 구조 패키지로 빌드
+      # macOS .app 구조 패키지로 빌드 (Godot 4.7이 임시 서명+entitlements 처리)
       - name: Export macOS Game (.app)
         run: |
           godot --headless --export-release "macOS" build/mac/desksaw.app
 
-      # 실행 권한 부여 + rcodesign 임시 서명 + zip 압축
-      - name: Fix Permissions, Ad-hoc Sign, and Zip
+      # 실행 권한 부여 + zip 압축
+      - name: Fix Permissions and Zip
         run: |
-          # 1. macOS 바이너리 및 프레임워크 실행 권한 부여
           chmod -R +x build/mac/desksaw.app/Contents/MacOS/
-          
-          # 2. Linux용 apple-codesign 도구 설치
-          curl -LO https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.28.0/apple-codesign-0.28.0-x86_64-unknown-linux-musl.tar.gz
-          tar -xzf apple-codesign-0.28.0-x86_64-unknown-linux-musl.tar.gz
-          
-          # 3. 임시 서명(Ad-hoc Code Sign) 적용 (macOS에서 killed 현상 방지)
-          ./apple-codesign-0.28.0-x86_64-unknown-linux-musl/rcodesign sign build/mac/desksaw.app
-
-          # 4. Zip으로 압축
           cd build/mac
           zip -r desksaw-macOS.zip desksaw.app
 
