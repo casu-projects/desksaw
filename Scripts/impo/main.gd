@@ -9,12 +9,22 @@ var screenHeight: int = DisplayServer.screen_get_usable_rect().size.y
 
 var taskbarPos: int = DisplayServer.screen_get_usable_rect().end.y
 
+var isMacOS: bool = OS.get_name() == "macOS"
+
 @export
 var console: Node
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	DisplayServer.window_set_size(Vector2i(screenWidth, screenHeight) - Vector2i(1, 1))
-	DisplayServer.window_set_position(DisplayServer.screen_get_position())
+	# macOS: use the full screen rect so the floor reaches the screen bezel (no Dock gap)
+	if isMacOS:
+		screenWidth = DisplayServer.screen_get_size().x
+		screenHeight = DisplayServer.screen_get_size().y
+		taskbarPos = screenHeight
+		DisplayServer.window_set_size(Vector2i(screenWidth, screenHeight))
+		DisplayServer.window_set_position(DisplayServer.screen_get_position())
+	else:
+		DisplayServer.window_set_size(Vector2i(screenWidth, screenHeight) - Vector2i(1, 1))
+		DisplayServer.window_set_position(DisplayServer.screen_get_position())
 	
 	if OS.get_name() == "Linux":
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
@@ -55,12 +65,18 @@ func createBorders():
 func updateBorders():
 	print("resizing")
 	var oldheight = screenHeight
-	screenWidth = DisplayServer.screen_get_usable_rect().size.x
-	screenHeight = DisplayServer.screen_get_usable_rect().size.y
-	taskbarPos = DisplayServer.screen_get_usable_rect().end.y
-
-	DisplayServer.window_set_size(Vector2i(screenWidth, screenHeight) - Vector2i(1, 1))
-	DisplayServer.window_set_position(DisplayServer.screen_get_position())
+	if isMacOS:
+		screenWidth = DisplayServer.screen_get_size().x
+		screenHeight = DisplayServer.screen_get_size().y
+		taskbarPos = screenHeight
+		DisplayServer.window_set_size(Vector2i(screenWidth, screenHeight))
+		DisplayServer.window_set_position(DisplayServer.screen_get_position())
+	else:
+		screenWidth = DisplayServer.screen_get_usable_rect().size.x
+		screenHeight = DisplayServer.screen_get_usable_rect().size.y
+		taskbarPos = DisplayServer.screen_get_usable_rect().end.y
+		DisplayServer.window_set_size(Vector2i(screenWidth, screenHeight) - Vector2i(1, 1))
+		DisplayServer.window_set_position(DisplayServer.screen_get_position())
 	for child in get_tree().current_scene.get_children():
 			if child.has_meta("entity") or child.has_meta("object"):
 				child.position.y -= screenHeight - oldheight
