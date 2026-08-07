@@ -97,6 +97,11 @@ func nukesettings():
 func setmonitor(monitorIndex: int = 1):
 	DisplayServer.window_set_current_screen(monitorIndex)
 	GlobalVariable.Fresize()
+	# make sure the window ends up covering the new screen completely so the
+	# borderless-fullscreen style path (and the floor position) stays correct
+	DisplayServer.window_set_size(DisplayServer.screen_get_size())
+	DisplayServer.window_set_position(DisplayServer.screen_get_position())
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 
 func resize(nx, ny, isForce = "no") -> String:
 	var ex = str(nx).to_float()
