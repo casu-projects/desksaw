@@ -52,10 +52,22 @@ jobs:
         run: |
           godot --headless --export-release "macOS" build/mac/desksaw.app
 
-      # 실행 권한 부여 + zip 압축
-      - name: Fix Permissions and Zip
+      # 실행 권한 부여 + rcodesign 재서명 + zip 압축
+      # (Godot 내장 리눅스 서명은 macOS가 거부하는 2중 CodeDirectory를 생성하므로,
+      #  검증된 rcodesign으로 번들 전체를 재서명한다)
+      - name: Fix Permissions, Ad-hoc Sign, and Zip
         run: |
+          # 1. macOS 바이너리 및 프레임워크 실행 권한 부여
           chmod -R +x build/mac/desksaw.app/Contents/MacOS/
+
+          # 2. Linux용 apple-codesign 도구 설치
+          curl -LO https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.28.0/apple-codesign-0.28.0-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf apple-codesign-0.28.0-x86_64-unknown-linux-musl.tar.gz
+
+          # 3. 임시 서명(Ad-hoc Code Sign) 재적용 (Godot 내장 서명 덮어쓰기)
+          ./apple-codesign-0.28.0-x86_64-unknown-linux-musl/rcodesign sign build/mac/desksaw.app
+
+          # 4. Zip으로 압축
           cd build/mac
           zip -r desksaw-macOS.zip desksaw.app
 
